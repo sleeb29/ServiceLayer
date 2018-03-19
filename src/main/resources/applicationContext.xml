@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-http="http://www.springframework.org/schema/integration/http"
+       xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
+       xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
+        http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream-3.0.xsd
+        http://www.springframework.org/schema/integration/mail
+        http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/integration/xml
+		http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
+
+    <bean id="myProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>classpath:application.properties</value>
+            </list>
+        </property>
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+    </bean>
+
+    <int:chain input-channel="request.channel">
+        <int-http:outbound-gateway id="httpOutboundGateway"
+                                   url="${user_service.topic_url}" http-method="GET"
+                                   expected-response-type="java.lang.String" charset="UTF-8" reply-timeout="5000"
+                                   message-converters="" />
+        <int:json-to-object-transformer type="com.service.layer.servicelayer.model.Topic[]"/>
+        <int:service-activator ref="topicSplitter"/>
+        <int:service-activator ref="topicRequestSender"/>
+
+        <bean id="recipientListRouter"
+              class="org.springframework.integration.router.RecipientListRouter">
+            <property name="channels">
+                <list>
+                    <ref bean="smtpChannel"/>
+                    <ref bean="jmsChannel"/>
+                </list>
+            </property>
+        </bean>
+
+    </int:chain>
+
+    <int-mail:outbound-channel-adapter id="smtpChannel"
+                                       host="${service_layer.email_host}"
+                                       port="${service_layer.email_port}"
+                                       username="${service_layer.email_sender}"
+                                       password="${service_layer.email_password}"
+                                       java-mail-properties="javaMailProperties"/>
+
+    <int-mail:header-enricher input-channel="smtpChannel">
+        <int-mail:to value="${service_layer.email_sender}"/>
+        <int-mail:from value="${service_layer.email_sender}"/>
+        <int-mail:subject value="${service_layer.email_subject}"/>
+        <int-mail:content-type value="text/html"/>
+    </int-mail:header-enricher>
+
+    <int-stream:stdout-channel-adapter id="jmsChannel" append-newline="true" />
+
+    <bean id="topicSplitter" class="com.service.layer.servicelayer.handler.TopicMessageSplitter"/>
+    <bean id="topicRequestSender" class="com.service.layer.servicelayer.handler.TopicRequestSender"/>
+
+    <util:properties id="javaMailProperties">
+        <prop key="mail.debug">true</prop>
+        <prop key="mail.smtps.auth">true</prop>
+        <prop key="mail.smtp.starttls.enable">true</prop>
+    </util:properties>
+
+</beans>
