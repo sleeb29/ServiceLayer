@@ -17,7 +17,7 @@
         http://www.springframework.org/schema/integration/xml
 		http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
 
-    <bean id="myProperties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+    <bean id="properties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="locations">
             <list>
                 <value>classpath:application.properties</value>
@@ -26,9 +26,11 @@
         <property name="ignoreResourceNotFound" value="true" />
         <property name="ignoreUnresolvablePlaceholders" value="true" />
         <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+        <property name="searchSystemEnvironment" value="true" />
     </bean>
 
     <int:chain input-channel="request.channel">
+
         <int-http:outbound-gateway id="httpOutboundGateway"
                                    url="${user_service.topic_url}" http-method="GET"
                                    expected-response-type="java.lang.String" charset="UTF-8" reply-timeout="5000"
@@ -36,12 +38,13 @@
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.Topic[]"/>
         <int:service-activator ref="topicSplitter"/>
         <int:service-activator ref="topicRequestSender"/>
+        <int:object-to-json-transformer />
 
         <bean id="recipientListRouter"
               class="org.springframework.integration.router.RecipientListRouter">
             <property name="channels">
                 <list>
-                    <ref bean="smtpChannel"/>
+                    <ref bean="serviceLayerActionChannel"/>
                     <ref bean="jmsChannel"/>
                 </list>
             </property>
@@ -49,19 +52,32 @@
 
     </int:chain>
 
-    <int-mail:outbound-channel-adapter id="smtpChannel"
-                                       host="${service_layer.email_host}"
-                                       port="${service_layer.email_port}"
-                                       username="${service_layer.email_sender}"
-                                       password="${service_layer.email_password}"
-                                       java-mail-properties="javaMailProperties"/>
+    <int:chain id="serviceLayerActionChannel">
 
-    <int-mail:header-enricher input-channel="smtpChannel">
-        <int-mail:to value="${service_layer.email_sender}"/>
-        <int-mail:from value="${service_layer.email_sender}"/>
-        <int-mail:subject value="${service_layer.email_subject}"/>
-        <int-mail:content-type value="text/html"/>
-    </int-mail:header-enricher>
+        <int:json-to-object-transformer type="com.service.layer.servicelayer.model.ServiceLayerActionInfo"/>
+
+        <int-mail:header-enricher>
+            <int-mail:to value="${service_layer.email_sender}"/>
+            <int-mail:from value="${service_layer.email_sender}"/>
+            <int-mail:subject value="${service_layer.email_subject}"/>
+            <int-mail:content-type value="text/html"/>
+        </int-mail:header-enricher>
+
+        <int-mail:outbound-channel-adapter host="${service_layer.email_host}"
+                                           port="${service_layer.email_port}"
+                                           username="${service_layer.email_sender}"
+                                           password="${service_layer.email_password}"
+                                           java-mail-properties="javaMailProperties"/>
+
+    </int:chain>
+
+    <bean id="marshallerUnmarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller" >
+        <property name="classesToBeBound">
+            <list>
+                <value>com.buzzilla.webhose.client.WebhoseResponse</value>
+            </list>
+        </property>
+    </bean>
 
     <int-stream:stdout-channel-adapter id="jmsChannel" append-newline="true" />
 
