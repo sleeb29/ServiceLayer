@@ -1,6 +1,5 @@
 package com.service.layer.servicelayer.http;
 
-import com.buzzilla.webhose.client.WebhoseClient;
 import com.service.layer.servicelayer.model.Topic;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.messaging.Message;
