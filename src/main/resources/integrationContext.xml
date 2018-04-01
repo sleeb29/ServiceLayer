@@ -6,22 +6,17 @@
        xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
        xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
        xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:int-cache="http://www.springframework.org/schema/cache"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
 		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
         http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream-3.0.xsd
         http://www.springframework.org/schema/integration/mail
         http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
-        http://www.springframework.org/schema/cache
-        https://www.springframework.org/cache/spring-cache.xsd
-        http://www.springframework.org/schema/integration/xml
-		http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd
-        http://www.springframework.org/schema/context
-        http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!--
+        Configuration for making environment variables/properties file referenceable in XML
+    -->
 
     <bean id="properties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="locations">
@@ -34,6 +29,11 @@
         <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
         <property name="searchSystemEnvironment" value="true" />
     </bean>
+
+    <!--
+        Integration entry point, makes initial call to the UserService and forks the message to the
+        service channel for SMTP messages about service info and the JMS channel to initiate the payload chain
+    -->
 
     <int:chain input-channel="request.channel">
 
@@ -57,6 +57,13 @@
 
     </int:chain>
 
+    <bean id="topicSplitter" class="com.service.layer.servicelayer.handler.TopicMessageSplitter"/>
+    <bean id="topicRequestSender" class="com.service.layer.servicelayer.handler.TopicRequestSender"/>
+
+    <!--
+        Service Layer entry point - sends information to technical email address about status of the Webhose API account
+    -->
+
     <int:chain id="serviceLayerChain" input-channel="serviceLayerActionChannel">
 
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.ServiceLayerActionInfo"/>
@@ -77,7 +84,18 @@
 
     </int:chain>
 
-    <int:chain input-channel="jmsChannel">
+    <util:properties id="javaMailProperties">
+        <prop key="mail.debug">true</prop>
+        <prop key="mail.smtps.auth">true</prop>
+        <prop key="mail.smtp.starttls.enable">true</prop>
+    </util:properties>
+
+    <!--
+        Payload Chain entry point - performs transformations on data returned from Webhose
+        and posts messages to the MessageQueue
+    -->
+    
+    <int:chain id="payloadChain" input-channel="jmsChannel">
 
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.TopicServiceData"/>
 
@@ -90,6 +108,9 @@
 
         <int:service-activator ref="topicMessageQueueSplitter"/>
 
+        <int:object-to-json-transformer />
+        <int-stream:stdout-channel-adapter append-newline="true" />
+
     </int:chain>
 
     <int:channel id="topicServiceChannel"/>
@@ -101,22 +122,6 @@
                                url="${user_service.service_data_url}" http-method="POST"
                                expected-response-type="com.service.layer.servicelayer.model.ResponsePayloadData" charset="UTF-8" reply-timeout="5000"/>
 
-    <bean id="marshallerUnmarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller" >
-        <property name="classesToBeBound">
-            <list>
-                <value>com.buzzilla.webhose.client.WebhoseResponse</value>
-            </list>
-        </property>
-    </bean>
-
-    <bean id="topicSplitter" class="com.service.layer.servicelayer.handler.TopicMessageSplitter"/>
-    <bean id="topicRequestSender" class="com.service.layer.servicelayer.handler.TopicRequestSender"/>
     <bean id="topicMessageQueueSplitter"  class="com.service.layer.servicelayer.handler.TopicMessageQueueSplitter" />
-
-    <util:properties id="javaMailProperties">
-        <prop key="mail.debug">true</prop>
-        <prop key="mail.smtps.auth">true</prop>
-        <prop key="mail.smtp.starttls.enable">true</prop>
-    </util:properties>
 
 </beans>
