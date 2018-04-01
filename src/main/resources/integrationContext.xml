@@ -6,6 +6,8 @@
        xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
        xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
        xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:int-cache="http://www.springframework.org/schema/cache"
+       xmlns:context="http://www.springframework.org/schema/context"
        xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
@@ -14,8 +16,12 @@
         http://www.springframework.org/schema/integration/mail
         http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/cache
+        https://www.springframework.org/cache/spring-cache.xsd
         http://www.springframework.org/schema/integration/xml
-		http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
+		http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
     <bean id="properties" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="locations">
@@ -33,8 +39,7 @@
 
         <int-http:outbound-gateway id="httpOutboundGateway"
                                    url="${user_service.topic_url}" http-method="GET"
-                                   expected-response-type="java.lang.String" charset="UTF-8" reply-timeout="5000"
-                                   message-converters="" />
+                                   expected-response-type="java.lang.String" charset="UTF-8" reply-timeout="5000"/>
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.Topic[]"/>
         <int:service-activator ref="topicSplitter"/>
         <int:service-activator ref="topicRequestSender"/>
@@ -52,9 +57,10 @@
 
     </int:chain>
 
-    <int:chain id="serviceLayerActionChannel">
+    <int:chain id="serviceLayerChain" input-channel="serviceLayerActionChannel">
 
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.ServiceLayerActionInfo"/>
+        <int:object-to-json-transformer />
 
         <int-mail:header-enricher>
             <int-mail:to value="${service_layer.email_sender}"/>
@@ -71,6 +77,30 @@
 
     </int:chain>
 
+    <int:chain input-channel="jmsChannel">
+
+        <int:json-to-object-transformer type="com.service.layer.servicelayer.model.TopicServiceData"/>
+
+        <int:enricher id="payloadEnricher"
+                      request-channel="topicServiceChannel"
+                      reply-channel="topicServiceEnricherReply"
+                      request-payload-expression="payload.topic">
+            <int:property name="serviceData" expression="payload.serviceData"/>
+        </int:enricher>
+
+        <int:service-activator ref="topicMessageQueueSplitter"/>
+
+    </int:chain>
+
+    <int:channel id="topicServiceChannel"/>
+    <int:channel id="topicServiceEnricherReply"/>
+
+    <int-http:outbound-gateway request-channel="topicServiceChannel"
+                               reply-channel="topicServiceEnricherReply"
+                               id="getTopicDataGateway"
+                               url="${user_service.service_data_url}" http-method="POST"
+                               expected-response-type="com.service.layer.servicelayer.model.ResponsePayloadData" charset="UTF-8" reply-timeout="5000"/>
+
     <bean id="marshallerUnmarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller" >
         <property name="classesToBeBound">
             <list>
@@ -79,10 +109,9 @@
         </property>
     </bean>
 
-    <int-stream:stdout-channel-adapter id="jmsChannel" append-newline="true" />
-
     <bean id="topicSplitter" class="com.service.layer.servicelayer.handler.TopicMessageSplitter"/>
     <bean id="topicRequestSender" class="com.service.layer.servicelayer.handler.TopicRequestSender"/>
+    <bean id="topicMessageQueueSplitter"  class="com.service.layer.servicelayer.handler.TopicMessageQueueSplitter" />
 
     <util:properties id="javaMailProperties">
         <prop key="mail.debug">true</prop>

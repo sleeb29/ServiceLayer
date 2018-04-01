@@ -1,9 +1,8 @@
 package com.service.layer.servicelayer.handler;
 
 import com.buzzilla.webhose.client.WebhoseClient;
-import com.buzzilla.webhose.client.WebhosePost;
 import com.buzzilla.webhose.client.WebhoseResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.service.layer.servicelayer.model.TopicServiceData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.stereotype.Component;
@@ -17,12 +16,18 @@ public class TopicRequestSender {
     private String webhoseApiKey;
 
     @ServiceActivator
-    public WebhoseResponse handleTopic(String topic) throws IOException {
+    public TopicServiceData handleTopic(String topic) throws IOException {
 
         WebhoseClient webhoseClient = new WebhoseClient(webhoseApiKey);
         WebhoseResponse webhoseResponse = webhoseClient.search(topic);
 
-        return webhoseResponse;
+        TopicServiceData topicServiceData = new TopicServiceData();
+        topicServiceData.setTopic(topic);
+        topicServiceData.setPosts(webhoseResponse.posts);
+        topicServiceData.setTotalResults(webhoseResponse.totalResults);
+        topicServiceData.setRequestsLeft(webhoseResponse.requestsLeft);
+
+        return topicServiceData;
 
     }
 
