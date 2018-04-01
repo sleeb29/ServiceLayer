@@ -94,7 +94,7 @@
         Payload Chain entry point - performs transformations on data returned from Webhose
         and posts messages to the MessageQueue
     -->
-    
+
     <int:chain id="payloadChain" input-channel="jmsChannel">
 
         <int:json-to-object-transformer type="com.service.layer.servicelayer.model.TopicServiceData"/>

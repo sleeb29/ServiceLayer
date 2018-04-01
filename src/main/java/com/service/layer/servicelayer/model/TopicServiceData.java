@@ -1,7 +1,6 @@
 package com.service.layer.servicelayer.model;
 
 import com.buzzilla.webhose.client.WebhosePost;
-import com.buzzilla.webhose.client.WebhoseResponse;
 
 import java.util.HashMap;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.service.layer.servicelayer.http;
+package com.service.layer.servicelayer.handler;
 
 import com.service.layer.servicelayer.model.Topic;
 import org.springframework.integration.annotation.ServiceActivator;
