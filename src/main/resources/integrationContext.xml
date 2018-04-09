@@ -6,13 +6,15 @@
        xmlns:int-stream="http://www.springframework.org/schema/integration/stream"
        xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
        xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
 		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
         http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream-3.0.xsd
         http://www.springframework.org/schema/integration/mail
         http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd">
 
     <!--
         Configuration for making environment variables/properties file referenceable in XML
@@ -109,7 +111,10 @@
         <int:service-activator ref="topicMessageQueueSplitter"/>
 
         <int:object-to-json-transformer />
-        <int-stream:stdout-channel-adapter append-newline="true" />
+
+        <!--TODO update destination to be dynamic lookup from HEADER -->
+       <int-jms:outbound-channel-adapter destination-name="SMTP"
+                                          pub-sub-domain="true"/>
 
     </int:chain>
 

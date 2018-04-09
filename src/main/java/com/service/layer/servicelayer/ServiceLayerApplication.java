@@ -13,11 +13,12 @@ public class ServiceLayerApplication {
 
 	private static Log logger = LogFactory.getLog(ServiceLayerApplication.class);
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 
 		SpringApplication.run(ServiceLayerApplication.class, args);
 		ClassPathXmlApplicationContext context =
-				new ClassPathXmlApplicationContext(new String[] {"integrationContext.xml",
+				new ClassPathXmlApplicationContext(new String[] {"messageBrokerContext.xml",
+						                            "integrationContext.xml",
                                                     "configuration.xml"});
 
 		MessageChannel requestChannel = context.getBean("request.channel", MessageChannel.class);

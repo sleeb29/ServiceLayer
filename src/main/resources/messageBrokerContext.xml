@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:amq="http://activemq.apache.org/schema/core"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core-5.4.2.xsd">
+
+    <amq:broker id="topicBroker" useJmx="false" persistent="false">
+
+        <amq:sslContext>
+            <amq:sslContext
+                    keyStore="${javax.net.ssl.keyStore}" keyStorePassword="${javax.net.ssl.keyStorePassword}"
+                    trustStore="${javax.net.ssl.trustStore}" trustStorePassword="${javax.net.ssl.trustStorePassword}"/>
+        </amq:sslContext>
+
+        <amq:transportConnectors>
+            <amq:transportConnector uri="${spring.activemq.broker-url}" />
+        </amq:transportConnectors>
+
+    </amq:broker>
+
+    <bean id="activeMQConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${spring.activemq.broker-url}"/>
+    </bean>
+
+    <bean id="jmsConnectionFactory" class="org.springframework.jms.connection.CachingConnectionFactory">
+        <constructor-arg ref="activeMQConnectionFactory" />
+    </bean>
+
+    <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="jmsConnectionFactory" />
+    </bean>
+
+    <bean id="jmsListenerContainerFactory" class=" org.springframework.jms.config.DefaultJmsListenerContainerFactory">
+        <property name="connectionFactory" ref="activeMQConnectionFactory" />
+        <property name="concurrency" value="3-10" />
+    </bean>
+
+    <bean id="topic" class="org.apache.activemq.command.ActiveMQTopic" />
+
+</beans>
