@@ -109,10 +109,13 @@
 
         <int:service-activator ref="serviceMessageQueueSplitter"/>
 
-        <int:object-to-json-transformer/>
-        <int:json-to-object-transformer type="java.util.HashMap" />
+        <int:header-enricher>
+            <int:header name="service" expression="payload.service" />
+        </int:header-enricher>
 
-        <int-jms:outbound-channel-adapter destination-expression="payload.get('service')"
+        <int:object-to-json-transformer />
+
+        <int-jms:outbound-channel-adapter destination-expression="headers.get('service')"
                                           pub-sub-domain="true"/>
 
     </int:chain>
