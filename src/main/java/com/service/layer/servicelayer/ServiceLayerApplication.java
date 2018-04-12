@@ -13,7 +13,7 @@ public class ServiceLayerApplication {
 
 	private static Log logger = LogFactory.getLog(ServiceLayerApplication.class);
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) {
 
 		SpringApplication.run(ServiceLayerApplication.class, args);
 		ClassPathXmlApplicationContext context =

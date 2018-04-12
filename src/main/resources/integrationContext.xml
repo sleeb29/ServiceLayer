@@ -6,7 +6,6 @@
        xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
-       xmlns:stream="http://www.springframework.org/schema/integration/stream"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
 		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
