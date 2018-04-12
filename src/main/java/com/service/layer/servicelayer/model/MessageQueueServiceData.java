@@ -7,9 +7,18 @@ import java.util.Set;
 
 public class MessageQueueServiceData {
 
+    String service;
     String topic;
     Set<String> userIds;
-    List<WebhosePost> posts;
+    WebhosePost post;
+
+    public String getService() {
+        return service;
+    }
+
+    public void setService(String service) {
+        this.service = service;
+    }
 
     public String getTopic() {
         return topic;
@@ -27,11 +36,11 @@ public class MessageQueueServiceData {
         this.userIds = userIds;
     }
 
-    public List<WebhosePost> getPosts() {
-        return posts;
+    public WebhosePost getPost() {
+        return post;
     }
 
-    public void setPosts(List<WebhosePost> posts) {
-        this.posts = posts;
+    public void setPost(WebhosePost post) {
+        this.post = post;
     }
 }

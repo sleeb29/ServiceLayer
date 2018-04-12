@@ -1,6 +1,7 @@
 package com.service.layer.servicelayer.handler;
 
 import com.buzzilla.webhose.client.WebhoseClient;
+import com.buzzilla.webhose.client.WebhosePost;
 import com.buzzilla.webhose.client.WebhoseResponse;
 import com.service.layer.servicelayer.model.TopicServiceData;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +9,7 @@ import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 @Component
 public class TopicRequestSender {

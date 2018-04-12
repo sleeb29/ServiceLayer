@@ -5,7 +5,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
         http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core-5.4.2.xsd">
 
-    <amq:broker id="topicBroker" useJmx="false" persistent="false">
+    <amq:broker id="topicBroker" useJmx="true" persistent="false"
+    deleteAllMessagesOnStartup="true">
 
         <amq:sslContext>
             <amq:sslContext
@@ -14,7 +15,7 @@
         </amq:sslContext>
 
         <amq:transportConnectors>
-            <amq:transportConnector uri="${spring.activemq.broker-url}" />
+            <amq:transportConnector uri="${spring.activemq.broker-url}"/>
         </amq:transportConnectors>
 
     </amq:broker>
@@ -30,12 +31,5 @@
     <bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
         <constructor-arg ref="jmsConnectionFactory" />
     </bean>
-
-    <bean id="jmsListenerContainerFactory" class=" org.springframework.jms.config.DefaultJmsListenerContainerFactory">
-        <property name="connectionFactory" ref="activeMQConnectionFactory" />
-        <property name="concurrency" value="3-10" />
-    </bean>
-
-    <bean id="topic" class="org.apache.activemq.command.ActiveMQTopic" />
 
 </beans>

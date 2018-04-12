@@ -6,13 +6,14 @@
        xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
        xmlns:util="http://www.springframework.org/schema/util"
        xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+       xmlns:stream="http://www.springframework.org/schema/integration/stream"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
 		http://www.springframework.org/schema/integration/http http://www.springframework.org/schema/integration/http/spring-integration-http.xsd
         http://www.springframework.org/schema/integration/mail
         http://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
-        http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd">
+        http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd http://www.springframework.org/schema/integration/stream http://www.springframework.org/schema/integration/stream/spring-integration-stream.xsd">
 
     <!--
         Configuration for making environment variables/properties file referenceable in XML
@@ -106,13 +107,13 @@
             <int:property name="serviceData" expression="payload.serviceData"/>
         </int:enricher>
 
-        <int:service-activator ref="topicMessageQueueSplitter"/>
+        <int:service-activator ref="serviceMessageQueueSplitter"/>
 
-        <int:object-to-json-transformer />
+        <int:object-to-json-transformer/>
         <int:json-to-object-transformer type="java.util.HashMap" />
 
-        <int-jms:outbound-channel-adapter destination-expression="payload.keySet().toArray()[0]"
-                                  pub-sub-domain="true"/>
+        <int-jms:outbound-channel-adapter destination-expression="payload.get('service')"
+                                          pub-sub-domain="true"/>
 
     </int:chain>
 
@@ -125,6 +126,6 @@
                                url="${user_service.service_data_url}" http-method="POST"
                                expected-response-type="com.service.layer.servicelayer.model.ResponsePayloadData" charset="UTF-8" reply-timeout="5000"/>
 
-    <bean id="topicMessageQueueSplitter"  class="com.service.layer.servicelayer.handler.TopicMessageQueueSplitter" />
+    <bean id="serviceMessageQueueSplitter"  class="com.service.layer.servicelayer.handler.ServiceMessageQueueSplitter" />
 
 </beans>
