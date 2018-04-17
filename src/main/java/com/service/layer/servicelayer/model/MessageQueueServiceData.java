@@ -2,6 +2,7 @@ package com.service.layer.servicelayer.model;
 
 import com.buzzilla.webhose.client.WebhosePost;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 

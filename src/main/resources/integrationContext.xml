@@ -73,7 +73,7 @@
             <int-mail:to value="${service_layer.email_sender}"/>
             <int-mail:from value="${service_layer.email_sender}"/>
             <int-mail:subject value="${service_layer.email_subject}"/>
-            <int-mail:content-type value="text/html"/>
+            <int-mail:content-type value="text/plain"/>
         </int-mail:header-enricher>
 
         <int-mail:outbound-channel-adapter host="${service_layer.email_host}"

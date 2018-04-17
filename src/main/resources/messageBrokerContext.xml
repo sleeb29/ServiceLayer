@@ -5,8 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
         http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core-5.4.2.xsd">
 
-    <amq:broker id="topicBroker" useJmx="true" persistent="false"
-    deleteAllMessagesOnStartup="true">
+    <amq:broker id="topicBroker" useJmx="true" persistent="false" deleteAllMessagesOnStartup="true">
 
         <amq:sslContext>
             <amq:sslContext

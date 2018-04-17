@@ -14,22 +14,33 @@ public class ServiceMessageQueueSplitter extends AbstractMessageSplitter {
     protected Set<MessageQueueServiceData> splitMessage(Message<?> message) {
 
         TopicServiceData payload = (TopicServiceData) message.getPayload();
-
         Set<MessageQueueServiceData> messageQueueServiceDataSet = new HashSet<>();
+        ValidatePostHelper validatePostHelper = new ValidatePostHelper();
 
-        for(Map.Entry<String, Set<String>> entry : payload.getServiceData().entrySet()){
+        for(Map.Entry<String,  HashMap<String, Set<String>>> entry : payload.getServiceData().entrySet()){
 
             String service = entry.getKey();
-            Set<String> userIds = entry.getValue();
+            HashMap<String, Set<String>> languageToUserMap = entry.getValue();
             String topic = payload.getTopic();
 
             for(WebhosePost post : payload.getPosts()){
 
+                String postLanguage = post.language;
+
+                if(!languageToUserMap.containsKey(postLanguage)){
+                    continue;
+                }
+
+                if(!validatePostHelper.addPost(post)){
+                    continue;
+                }
+
                 MessageQueueServiceData messageQueueServiceData = new MessageQueueServiceData();
                 messageQueueServiceData.setService(service);
                 messageQueueServiceData.setTopic(topic);
-                messageQueueServiceData.setUserIds(userIds);
+                messageQueueServiceData.setUserIds(languageToUserMap.get(postLanguage));
                 messageQueueServiceData.setPost(post);
+
                 messageQueueServiceDataSet.add(messageQueueServiceData);
 
             }

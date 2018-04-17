@@ -14,7 +14,7 @@ public class TopicServiceData {
     int totalResults;
     int requestsLeft;
 
-    HashMap<String, Set<String>> serviceData;
+    HashMap<String,  HashMap<String, Set<String>>> serviceData;
 
     public String getTopic() {
         return topic;
@@ -48,11 +48,11 @@ public class TopicServiceData {
         this.requestsLeft = requestsLeft;
     }
 
-    public HashMap<String, Set<String>> getServiceData() {
+    public HashMap<String, HashMap<String, Set<String>>> getServiceData() {
         return serviceData;
     }
 
-    public void setServiceData(HashMap<String, Set<String>> serviceData) {
+    public void setServiceData(HashMap<String, HashMap<String, Set<String>>> serviceData) {
         this.serviceData = serviceData;
     }
 
