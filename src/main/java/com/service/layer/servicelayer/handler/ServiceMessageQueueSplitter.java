@@ -1,6 +1,7 @@
 package com.service.layer.servicelayer.handler;
 
 import com.buzzilla.webhose.client.WebhosePost;
+import com.service.layer.servicelayer.handler.validate.ValidatePostHelper;
 import com.service.layer.servicelayer.model.MessageQueueServiceData;
 import com.service.layer.servicelayer.model.TopicServiceData;
 import org.springframework.integration.splitter.AbstractMessageSplitter;
@@ -25,13 +26,15 @@ public class ServiceMessageQueueSplitter extends AbstractMessageSplitter {
 
             for(WebhosePost post : payload.getPosts()){
 
+                //each post will only be written in one language
+                //if no user's have that as their preferred language then
+                //don't send post.
                 String postLanguage = post.language;
-
                 if(!languageToUserMap.containsKey(postLanguage)){
                     continue;
                 }
 
-                if(!validatePostHelper.addPost(post)){
+                if(!validatePostHelper.validPostToAdd(post.title, post.language)){
                     continue;
                 }
 
