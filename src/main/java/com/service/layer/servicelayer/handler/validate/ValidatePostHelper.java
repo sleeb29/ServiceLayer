@@ -44,10 +44,58 @@ public class ValidatePostHelper {
 
     private ArrayList<String> getLexicographicallySortedWordsInTitle(String title){
 
+        /*
+
+        TODO - Add support for i18n for common words - Most likely table in UserService
+        to send as part of MessageQueueServiceDataPayload
+
+        should not compare common words as this does not tell us the titles match
+        perhaps consider also treating numbers as needing to be exact matches so
+        storing words and number sets separately for separate comparison
+
+        Ideally a service that provides common words for each language would exist
+
+        */
+
+        Set<String> wordsToIgnore = new HashSet<>();
+
+        wordsToIgnore.add("JUST");
+        wordsToIgnore.add("IS");
+        wordsToIgnore.add("THE");
+        wordsToIgnore.add("A");
+        wordsToIgnore.add("FROM");
+        wordsToIgnore.add("TO");
+        wordsToIgnore.add("TOO");
+        wordsToIgnore.add("WITH");
+        wordsToIgnore.add("WAY");
+        wordsToIgnore.add("IT");
+        wordsToIgnore.add("IT'S");
+        wordsToIgnore.add("I");
+        wordsToIgnore.add("I'M");
+        wordsToIgnore.add("AM");
+        wordsToIgnore.add("THAT");
+        wordsToIgnore.add("THIS");
+        wordsToIgnore.add("THUS");
+        wordsToIgnore.add("SHOULD");
+        wordsToIgnore.add("NOT");
+        wordsToIgnore.add("ISN'T");
+        wordsToIgnore.add("WON'T");
+        wordsToIgnore.add("WE");
+        wordsToIgnore.add("SHE");
+        wordsToIgnore.add("HE");
+        wordsToIgnore.add("HIM");
+        wordsToIgnore.add("HIS");
+        wordsToIgnore.add("HER");
+        wordsToIgnore.add("HERS");
+        wordsToIgnore.add("AND");
+        wordsToIgnore.add("AN");
+        wordsToIgnore.add("AT");
+
         String[] wordsInTitleArray = title.split(WORD_REGULAR_EXPRESSION);
         ArrayList<String> wordsInTitle =  (ArrayList<String>)Arrays.stream(wordsInTitleArray)
                                                 .distinct()
                                                 .map(word -> word.toUpperCase())
+                                                .filter(word -> !wordsToIgnore.contains(word))
                                                 .sorted()
                                                 .collect(Collectors.toList());
 

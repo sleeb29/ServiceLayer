@@ -6,7 +6,7 @@ import org.apache.commons.lang.StringUtils;
 
 public class WordEditDistanceUtil {
 
-    private final double WORD_MATCH_FACTOR = 0.5;
+    private final double WORD_MATCH_FACTOR = 0.2;
     Map<String, Map<String, Boolean>> calculatedMatchesMap;
 
     public WordEditDistanceUtil() {
@@ -32,7 +32,7 @@ public class WordEditDistanceUtil {
 
         int word1Length = word1.length();
         int word2Length = word2.length();
-        int maxLength = Math.max(word1Length, word2Length);
+        double maxLength = Math.max(word1Length, word2Length);
 
         if (this.calculatedMatchesMap.containsKey(word1)) {
 
@@ -50,7 +50,7 @@ public class WordEditDistanceUtil {
 
         }
 
-        int distance = StringUtils.getLevenshteinDistance(word1, word2);
+        double distance = StringUtils.getLevenshteinDistance(word1, word2);
 
         Boolean isMatch = distance/maxLength < WORD_MATCH_FACTOR;
         addEntryToDistanceMap(word1, word2, isMatch);

@@ -23,7 +23,6 @@ public class TopicRequestSender {
     public TopicServiceData handleTopic(String topic) throws IOException {
 
         WebhoseClient webhoseClient = new WebhoseClient(webhoseApiKey);
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 86400000);
         WebhoseQuery query = new WebhoseQuery();
         query.phrase = topic;
         query.title = topic;

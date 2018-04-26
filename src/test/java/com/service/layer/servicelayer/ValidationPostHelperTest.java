@@ -1,6 +1,8 @@
 package com.service.layer.servicelayer;
 
 import com.service.layer.servicelayer.handler.validate.ValidatePostHelper;
+import com.service.layer.servicelayer.handler.validate.WordEditDistanceUtil;
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -76,6 +78,18 @@ public class ValidationPostHelperTest {
 
         assert (firstTitleIsValid);
         assert (!secondTitleIsValid);
+
+    }
+
+    @Test
+    public void validateWordIsNotFuzzyMatch(){
+
+        String firstWord = "CLEVINGER";
+        String secondWord = "CLEVELAND";
+
+        WordEditDistanceUtil wordEditDistanceUtil = new WordEditDistanceUtil();
+
+        assert (!wordEditDistanceUtil.isFuzzyMatch(firstWord, secondWord));
 
     }
 
