@@ -1,5 +1,6 @@
 package com.service.layer.servicelayer.handler.validate;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -11,9 +12,10 @@ public class ValidatePostHelper {
     private static Log logger = LogFactory.getLog(ValidatePostHelper.class);
     private final double MATCH_FACTOR = 0.5;
     private final String WORD_REGULAR_EXPRESSION = "\\P{javaLetterOrDigit}+";
+    private final String NUMBER_REGULAR_EXPRESSION = "\\P{javaDigit}+";
 
     HashMap<String, Set<String>> languageToVisitedTitlesMap;
-    HashMap<String, Set<ArrayList<String>>> languageToAddedTitlesMap;
+    HashMap<String, Set<TitleData>> languageToAddedTitlesMap;
     WordEditDistanceUtil wordEditDistanceUtil;
 
     public ValidatePostHelper(){
@@ -29,20 +31,20 @@ public class ValidatePostHelper {
             return false;
         }
 
-        ArrayList<String> wordsInTitle = getLexicographicallySortedWordsInTitle(title);
-        Boolean fuzzyMatch = hasFuzzyMatch(wordsInTitle, title, language);
+        TitleData titleData = getLexicographicallySortedWordsInTitle(title);
+        Boolean fuzzyMatch = hasFuzzyMatch(titleData, title, language);
 
         if(fuzzyMatch){
             return false;
         }
 
-        updateLanguageMaps(wordsInTitle, title, language);
+        updateLanguageMaps(titleData, title, language);
 
         return true;
 
     }
 
-    private ArrayList<String> getLexicographicallySortedWordsInTitle(String title){
+    private TitleData getLexicographicallySortedWordsInTitle(String title){
 
         /*
 
@@ -50,8 +52,6 @@ public class ValidatePostHelper {
         to send as part of MessageQueueServiceDataPayload
 
         should not compare common words as this does not tell us the titles match
-        perhaps consider also treating numbers as needing to be exact matches so
-        storing words and number sets separately for separate comparison
 
         Ideally a service that provides common words for each language would exist
 
@@ -99,13 +99,19 @@ public class ValidatePostHelper {
                                                 .sorted()
                                                 .collect(Collectors.toList());
 
-        return wordsInTitle;
+        ArrayList<Integer> numbersInTitle = (ArrayList<Integer>)wordsInTitle.parallelStream()
+                .filter(word -> !word.matches(NUMBER_REGULAR_EXPRESSION))
+                .map(word -> Integer.parseInt(word))
+                .sorted()
+                .collect(Collectors.toList());
+
+        return new TitleData(wordsInTitle, numbersInTitle);
 
     }
 
-    private Boolean hasFuzzyMatch(ArrayList<String> wordsInTitle, String title, String language){
+    private Boolean hasFuzzyMatch(TitleData titleData, String title, String language){
 
-        for(Map.Entry<String, Set<ArrayList<String>>> entry : languageToAddedTitlesMap.entrySet()){
+        for(Map.Entry<String, Set<TitleData>> entry : languageToAddedTitlesMap.entrySet()){
 
             if(!entry.getKey().equals(language)){
                 continue;
@@ -115,11 +121,11 @@ public class ValidatePostHelper {
                 languageToAddedTitlesMap.put(language, new HashSet<>());
             }
 
-            Set<ArrayList<String>> existingTitles = entry.getValue();
+            Set<TitleData> existingTitles = entry.getValue();
 
-            for(ArrayList<String> wordsInExistingTitle : existingTitles) {
+            for(TitleData existingTitleData : existingTitles) {
 
-                Boolean foundMatchOnExistingTitle = existingTitleIsFuzzyMatch(wordsInTitle, wordsInExistingTitle, title, language);
+                Boolean foundMatchOnExistingTitle = existingTitleIsFuzzyMatch(titleData, existingTitleData, title, language);
                 if(foundMatchOnExistingTitle){
                     return true;
                 }
@@ -132,12 +138,14 @@ public class ValidatePostHelper {
 
     }
 
-    private Boolean existingTitleIsFuzzyMatch(ArrayList<String> wordsInTitle, ArrayList<String> wordsInExistingTitle, String title, String language){
+    private Boolean existingTitleIsFuzzyMatch(TitleData titleData, TitleData existingTitleData, String title, String language){
 
-        int matchCount = getMatchCount(wordsInTitle, wordsInExistingTitle);
+        int wordMatchCound = getMatchCount(titleData.wordList, existingTitleData.wordList, true);
+        int intMatchCount = getMatchCount(titleData.numberList, existingTitleData.numberList, false);
+        int matchCount = wordMatchCound + intMatchCount;
 
-        Double newWordMatchingPercent = matchCount / Double.parseDouble(Integer.toString(wordsInTitle.size()));
-        Double oldWordMatchingPercent = matchCount / Double.parseDouble(Integer.toString(wordsInExistingTitle.size()));
+        Double newWordMatchingPercent = matchCount / Double.parseDouble(Integer.toString(titleData.count));
+        Double oldWordMatchingPercent = matchCount / Double.parseDouble(Integer.toString(existingTitleData.count));
 
         if(newWordMatchingPercent >= this.MATCH_FACTOR || oldWordMatchingPercent >= this.MATCH_FACTOR){
             this.languageToVisitedTitlesMap.get(language).add(title);
@@ -148,24 +156,38 @@ public class ValidatePostHelper {
 
     }
 
-    private int getMatchCount(ArrayList<String> wordsInTitle, ArrayList<String> wordsInExistingTitle){
+    private int getMatchCount(ArrayList<?> newList, ArrayList<?> oldList, Boolean isStringList){
 
         int newTitleIndex = 0;
         int oldTitleIndex = 0;
         int matchCount = 0;
 
-        int wordCountNewTitle = wordsInTitle.size();
-        int wordCountExistingTitle = wordsInExistingTitle.size();
+        int wordCountNewTitle = newList.size();
+        int wordCountExistingTitle = oldList.size();
 
         while (newTitleIndex < wordCountNewTitle && oldTitleIndex < wordCountExistingTitle) {
 
-            String newWord = wordsInTitle.get(newTitleIndex).toUpperCase();
-            String oldWord = wordsInExistingTitle.get(oldTitleIndex).toUpperCase();
-            Boolean fuzzyMatch = this.wordEditDistanceUtil.isFuzzyMatch(newWord, oldWord);
+            Boolean isMatch;
 
-            Boolean newBeforeOld = newWord.compareTo(oldWord) < 0;
+            Object newObject = newList.get(newTitleIndex);
+            Object oldObject = oldList.get(oldTitleIndex);
 
-            if (fuzzyMatch) {
+            String newWord = String.valueOf(newObject).toUpperCase();
+            String oldWord = String.valueOf(oldObject).toUpperCase();
+
+            Boolean newBeforeOld;
+
+            if(isStringList) {
+                isMatch = this.wordEditDistanceUtil.isFuzzyMatch(newWord, oldWord);
+                newBeforeOld = newWord.compareTo(oldWord) < 0;
+            } else {
+                Integer newInt = Integer.parseInt(newWord);
+                Integer oldInt = Integer.parseInt(oldWord);
+                isMatch = newInt.equals(oldInt);
+                newBeforeOld = newInt < oldInt;
+            }
+
+            if (isMatch) {
                 matchCount++;
                 newTitleIndex++;
                 oldTitleIndex++;
@@ -181,7 +203,7 @@ public class ValidatePostHelper {
 
     }
 
-    private void updateLanguageMaps(ArrayList<String> wordsInTitle, String title, String language){
+    private void updateLanguageMaps(TitleData titleData, String title, String language){
 
         if(!languageToAddedTitlesMap.containsKey(language)){
             languageToAddedTitlesMap.put(language, new HashSet<>());
@@ -191,8 +213,24 @@ public class ValidatePostHelper {
             languageToVisitedTitlesMap.put(language, new HashSet<>());
         }
 
-        this.languageToAddedTitlesMap.get(language).add(wordsInTitle);
+        this.languageToAddedTitlesMap.get(language).add(titleData);
         this.languageToVisitedTitlesMap.get(language).add(title);
+
+    }
+
+    private class TitleData {
+
+        ArrayList<String> wordList;
+        ArrayList<Integer> numberList;
+
+        int count;
+
+        public TitleData(ArrayList<String> wordList, ArrayList<Integer> numberList){
+            this.wordList = wordList;
+            this.numberList = numberList;
+
+            count = this.wordList.size() + this.numberList.size();
+        }
 
     }
 

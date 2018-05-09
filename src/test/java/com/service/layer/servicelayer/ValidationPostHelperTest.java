@@ -82,6 +82,23 @@ public class ValidationPostHelperTest {
     }
 
     @Test
+    public void validateMatchingWithNumbers(){
+
+        String firstTitle = "1 2 3";
+        String secondTitle = "3 2 1";
+
+        String language = "ENGLISH";
+
+        ValidatePostHelper validatePostHelper = new ValidatePostHelper();
+        Boolean firstTitleIsValid = validatePostHelper.validPostToAdd(firstTitle, language);
+        Boolean secondTitleIsValid = validatePostHelper.validPostToAdd(secondTitle, language);
+
+        assert (firstTitleIsValid);
+        assert (!secondTitleIsValid);
+
+    }
+
+    @Test
     public void validateWordIsNotFuzzyMatch(){
 
         String firstWord = "CLEVINGER";
