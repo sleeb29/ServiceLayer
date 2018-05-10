@@ -1,27 +1,37 @@
 package com.service.layer.servicelayer.handler.validate;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
+import com.service.layer.servicelayer.ServiceLayerApplication;
+import com.service.layer.servicelayer.model.StopWordsByLanguage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.integration.json.JsonToObjectTransformer;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageHeaders;
 
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ValidatePostHelper {
 
     private static Log logger = LogFactory.getLog(ValidatePostHelper.class);
+
     private final double MATCH_FACTOR = 0.5;
     private final String WORD_REGULAR_EXPRESSION = "\\P{javaLetterOrDigit}+";
     private final String NUMBER_REGULAR_EXPRESSION = "\\P{javaDigit}+";
+    private String stopWordsFilePath = "data/stop_words.json";
 
     HashMap<String, Set<String>> languageToVisitedTitlesMap;
     HashMap<String, Set<TitleData>> languageToAddedTitlesMap;
     WordEditDistanceUtil wordEditDistanceUtil;
+    StopWordsByLanguage stopWordsByLanguage;
 
-    public ValidatePostHelper(){
+    public ValidatePostHelper() throws IOException {
         this.languageToVisitedTitlesMap = new HashMap<>();
         this.languageToAddedTitlesMap = new HashMap<>();
         this.wordEditDistanceUtil = new WordEditDistanceUtil();
+
+       loadStopWordsByLanguage();
     }
 
     public Boolean validPostToAdd(String title, String language){
@@ -31,7 +41,7 @@ public class ValidatePostHelper {
             return false;
         }
 
-        TitleData titleData = getLexicographicallySortedWordsInTitle(title);
+        TitleData titleData = getLexicographicallySortedWordsInTitle(title, language);
         Boolean fuzzyMatch = hasFuzzyMatch(titleData, title, language);
 
         if(fuzzyMatch){
@@ -44,52 +54,9 @@ public class ValidatePostHelper {
 
     }
 
-    private TitleData getLexicographicallySortedWordsInTitle(String title){
+    private TitleData getLexicographicallySortedWordsInTitle(String title, String language){
 
-        /*
-
-        TODO - Add support for i18n for common words - Most likely table in UserService
-        to send as part of MessageQueueServiceDataPayload
-
-        should not compare common words as this does not tell us the titles match
-
-        Ideally a service that provides common words for each language would exist
-
-        */
-
-        Set<String> wordsToIgnore = new HashSet<>();
-
-        wordsToIgnore.add("JUST");
-        wordsToIgnore.add("IS");
-        wordsToIgnore.add("THE");
-        wordsToIgnore.add("A");
-        wordsToIgnore.add("FROM");
-        wordsToIgnore.add("TO");
-        wordsToIgnore.add("TOO");
-        wordsToIgnore.add("WITH");
-        wordsToIgnore.add("WAY");
-        wordsToIgnore.add("IT");
-        wordsToIgnore.add("IT'S");
-        wordsToIgnore.add("I");
-        wordsToIgnore.add("I'M");
-        wordsToIgnore.add("AM");
-        wordsToIgnore.add("THAT");
-        wordsToIgnore.add("THIS");
-        wordsToIgnore.add("THUS");
-        wordsToIgnore.add("SHOULD");
-        wordsToIgnore.add("NOT");
-        wordsToIgnore.add("ISN'T");
-        wordsToIgnore.add("WON'T");
-        wordsToIgnore.add("WE");
-        wordsToIgnore.add("SHE");
-        wordsToIgnore.add("HE");
-        wordsToIgnore.add("HIM");
-        wordsToIgnore.add("HIS");
-        wordsToIgnore.add("HER");
-        wordsToIgnore.add("HERS");
-        wordsToIgnore.add("AND");
-        wordsToIgnore.add("AN");
-        wordsToIgnore.add("AT");
+        Set<String> wordsToIgnore = this.stopWordsByLanguage.getCommonWordsByLanguage(language);
 
         String[] wordsInTitleArray = title.split(WORD_REGULAR_EXPRESSION);
         ArrayList<String> wordsInTitle =  (ArrayList<String>)Arrays.stream(wordsInTitleArray)
@@ -215,6 +182,35 @@ public class ValidatePostHelper {
 
         this.languageToAddedTitlesMap.get(language).add(titleData);
         this.languageToVisitedTitlesMap.get(language).add(title);
+
+    }
+
+    public void loadStopWordsByLanguage() throws IOException {
+
+        ClassLoader classLoader = ValidatePostHelper.class.getClassLoader();
+        File file = new File(classLoader.getResource(stopWordsFilePath).getFile());
+        FileInputStream fis = new FileInputStream(file);
+        byte[] fileData = new byte[(int) file.length()];
+        fis.read(fileData);
+        fis.close();
+
+        String json = new String(fileData, "UTF-8").toUpperCase();
+
+        JsonToObjectTransformer jsonToObjectTransformer = new JsonToObjectTransformer(StopWordsByLanguage.class);
+        Message<String> message = new Message<String>() {
+            @Override
+            public String getPayload() {
+                return json;
+            }
+
+            @Override
+            public MessageHeaders getHeaders() {
+                return null;
+            }
+        };
+
+        Message<StopWordsByLanguage> stopWordsByLanguageMessage = (Message<StopWordsByLanguage>)jsonToObjectTransformer.transform(message);
+        this.stopWordsByLanguage = stopWordsByLanguageMessage.getPayload();
 
     }
 

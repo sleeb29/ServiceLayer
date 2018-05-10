@@ -7,6 +7,7 @@ import com.service.layer.servicelayer.model.TopicServiceData;
 import org.springframework.integration.splitter.AbstractMessageSplitter;
 import org.springframework.messaging.Message;
 
+import java.io.IOException;
 import java.util.*;
 
 public class ServiceMessageQueueSplitter extends AbstractMessageSplitter {
@@ -16,7 +17,15 @@ public class ServiceMessageQueueSplitter extends AbstractMessageSplitter {
 
         TopicServiceData payload = (TopicServiceData) message.getPayload();
         Set<MessageQueueServiceData> messageQueueServiceDataSet = new HashSet<>();
-        ValidatePostHelper validatePostHelper = new ValidatePostHelper();
+
+
+
+        ValidatePostHelper validatePostHelper = null;
+        try {
+            validatePostHelper = new ValidatePostHelper();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         for(Map.Entry<String,  HashMap<String, Set<String>>> entry : payload.getServiceData().entrySet()){
 
